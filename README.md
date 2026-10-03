@@ -4,6 +4,10 @@ A small desktop widget for Windows that turns whatever you are playing into a ga
 
 [English](#english) · [繁體中文](#繁體中文)
 
+| Galaxy Geometry | Black Hole |
+| :---: | :---: |
+| <img src="docs/screenshots/galaxy-geometry.webp" alt="Galaxy Geometry: translucent ribbons, orbits and dust in blue and gold"> | <img src="docs/screenshots/black-hole.webp" alt="Black Hole: quantum equations pulled into a particle black hole"> |
+
 ---
 
 ## English
