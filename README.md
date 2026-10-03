@@ -23,7 +23,7 @@ A small desktop widget for Windows that turns whatever you are playing into a ga
 - Low-latency beat detection, plus a **Sync Delay** option for Bluetooth speakers and headphones whose sound arrives later than the visuals.
 - Floating, draggable, always-on-top circular window. The corners are click-through.
 - Five window sizes, up to near full screen.
-- Everything runs locally. The app makes **no network requests** and stores nothing but its own settings.
+- Everything runs locally. The app makes **no network requests**, and the only file it writes itself is a small settings file.
 
 ### Controls
 
@@ -115,7 +115,7 @@ Capturing system audio on Windows requires keeping a video track alive, otherwis
 
 ### 隱私
 
-程式不連網、不蒐集資料，只在本機分析聲音，除了自己的設定檔（視窗位置與選項）之外不會儲存任何東西。
+程式不連網、不蒐集資料，只在本機分析聲音；程式自己寫入硬碟的只有一個小設定檔（視窗位置與選項）。
 
 ### 從原始碼執行與打包
 
