@@ -1,0 +1,55 @@
+{
+  "name": "universe-music-visualizer",
+  "version": "0.1.0",
+  "description": "Universe Music Visualizer - a desktop widget that turns your music into a galaxy or a black hole",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "author": "rrrl2617",
+  "build": {
+    "appId": "com.rinrin.galaxyvisualizer",
+    "productName": "Universe Music Visualizer",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Universe Music Visualizer"
+    }
+  },
+  "productName": "Universe Music Visualizer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rrrl2617/universe-music-visualizer.git"
+  },
+  "homepage": "https://github.com/rrrl2617/universe-music-visualizer#readme",
+  "bugs": {
+    "url": "https://github.com/rrrl2617/universe-music-visualizer/issues"
+  }
+}

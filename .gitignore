@@ -1,0 +1,20 @@
+# Dependencies (restore with `npm install`)
+node_modules/
+
+# Build output (the installer is published under GitHub Releases, not committed)
+dist/
+
+# Logs and OS noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Local editor / tool state
+.vscode/
+.idea/
+.claude/
+
+# Local environment files (none are used today; keep it that way)
+.env
+.env.*
