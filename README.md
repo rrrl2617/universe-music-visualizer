@@ -37,7 +37,7 @@ Window sizes: Small 320 · Medium 440 · Large 600 · Extra Large 800 · Max (96
 
 ### Install
 
-Download `Universe Music Visualizer Setup 0.1.0.exe` from the [Releases](../../releases) page and run it. The installer is **not code-signed**, so Windows SmartScreen will warn you: click **More info → Run anyway**.
+Download the latest `Universe.Music.Visualizer.Setup.<version>.exe` from the [Releases](../../releases) page and run it. The installer is **not code-signed**, so Windows SmartScreen will warn you: click **More info → Run anyway**.
 
 ### Run from source
 
@@ -111,7 +111,7 @@ Capturing system audio on Windows requires keeping a video track alive, otherwis
 
 ### 安裝
 
-到 [Releases](../../releases) 下載 `Universe Music Visualizer Setup 0.1.0.exe` 並執行。安裝檔**沒有數位簽章**，Windows SmartScreen 會跳出警告，點「其他資訊」再點「仍要執行」即可。
+到 [Releases](../../releases) 下載最新的 `Universe.Music.Visualizer.Setup.<版本>.exe` 並執行。安裝檔**沒有數位簽章**，Windows SmartScreen 會跳出警告，點「其他資訊」再點「仍要執行」即可。
 
 ### 隱私
 

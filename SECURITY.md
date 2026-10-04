@@ -62,7 +62,7 @@ What to expect:
 Each release lists the SHA-256 hash of the installer. To check your copy in PowerShell:
 
 ```powershell
-Get-FileHash .\Universe.Music.Visualizer.Setup.0.1.0.exe -Algorithm SHA256
+Get-FileHash .\Universe.Music.Visualizer.Setup.*.exe -Algorithm SHA256
 ```
 
 The result must match the hash in the release notes. Only download the installer from this repository's **Releases** page.

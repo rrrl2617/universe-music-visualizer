@@ -1,6 +1,6 @@
 {
   "name": "universe-music-visualizer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Universe Music Visualizer - a desktop widget that turns your music into a galaxy or a black hole",
   "main": "src/main.js",
   "scripts": {
