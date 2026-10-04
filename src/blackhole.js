@@ -204,8 +204,7 @@ function bhStreakPass(dt, col) {
 // ───────────── 公式：整行字，每個字元各自受重力 ─────────────
 const BH_FORM_COUNT = 46;     // 公式的總條數（含還在畫面外等著進場的）；畫面上同時可讀的約 8 條
 const bhForms = Array.from({ length: BH_FORM_COUNT }, () => ({ chars: [], born: false, wait: 0 }));
-let bhReadable = 0;           // 目前畫面上「可讀」的公式條數（除錯用）
-let bhReadableSum = 0, bhReadableN = 0;
+let bhReadableSum = 0, bhReadableN = 0; // 除錯用：統計畫面上「可讀」的公式條數
 
 function bhSpawnFormula(e, initial) {
   const text = BH_FORMULAS[(Math.random() * BH_FORMULAS.length) | 0];
@@ -229,9 +228,9 @@ function bhSpawnFormula(e, initial) {
 }
 
 function bhTokenPass(dt) {
-  ctx.lineCap = 'round';
-  ctx.beginPath(); // 靠近黑洞時，每個字元後面拖一小段光，把字和流線接起來
-  let smears = 0;
+  // 靠近黑洞時，每個字元後面拖一小段光，把字和流線接起來。
+  // 畫字元時會切換到每個字元自己的旋轉縮放座標系，所以拖尾線先收集起來，等座標系還原後再畫。
+  const smear = [];
   let readable = 0;
   for (const e of bhForms) {
     let vis = 0;
@@ -258,7 +257,7 @@ function bhTokenPass(dt) {
         0.8 * (0.8 + 0.2 * bhLane(p.ly)) * clamp((1.15 - p.x) / 0.2, 0, 1)
           * Math.pow(clamp((d - bhRsLive) / 0.15, 0, 1), 0.7) * (1 + near * 0.4), 0, 0.95);
 
-      if (alpha > 0.3 && near < 0.5 && p.x * p.x + p.y * p.y < 0.95) vis++;
+      if (debug && alpha > 0.3 && near < 0.5 && p.x * p.x + p.y * p.y < 0.95) vis++;
       if (alpha > 0.02) {
         const ca = Math.cos(ang), sa = Math.sin(ang);
         const sx = base * stretch, sy = base * thin;
@@ -268,27 +267,34 @@ function bhTokenPass(dt) {
         ctx.drawImage(p.g.canvas, -p.g.w / 2, -p.g.h / 2);
       }
       if (near > 0.2 && alpha > 0.1) {
-        ctx.moveTo(CX + p.x * R, CY + p.y * R);
-        ctx.lineTo(CX + (p.x - p.vx * 0.12) * R, CY + (p.y - p.vy * 0.12) * R);
-        smears++;
+        smear.push(CX + p.x * R, CY + p.y * R, CX + (p.x - p.vx * 0.12) * R, CY + (p.y - p.vy * 0.12) * R);
       }
       if (!bhStep(p, dt * bhTokenSpeed)) e.chars.splice(i, 1);
     }
     if (e.total && vis >= Math.max(3, e.total * 0.5)) readable++; // 至少一半的字元在畫面內且夠亮，才算一條完整可讀的公式
   }
-  bhReadable = readable;
-  bhReadableSum += readable;
-  bhReadableN++;
-  if (debug && bhReadableN >= 60) {
-    console.log(`readable formulas (avg of last ${bhReadableN} frames): ${(bhReadableSum / bhReadableN).toFixed(1)}`);
-    bhReadableSum = 0;
-    bhReadableN = 0;
+  if (debug) {
+    bhReadableSum += readable;
+    if (++bhReadableN >= 60) {
+      console.log(`readable formulas (avg of last ${bhReadableN} frames): ${(bhReadableSum / bhReadableN).toFixed(1)}`);
+      bhReadableSum = 0;
+      bhReadableN = 0;
+    }
   }
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.globalAlpha = 0.28;
-  ctx.lineWidth = Math.max(0.6, 0.8 * SC * 0.85);
-  ctx.strokeStyle = rgba(tint(pal.P, 0.82), 1);
-  if (smears) ctx.stroke();
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 還原座標系，再畫拖尾線
+  if (smear.length) {
+    ctx.globalAlpha = 0.28;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(0.6, 0.8 * SC * 0.85);
+    ctx.strokeStyle = rgba(tint(pal.P, 0.82), 1);
+    ctx.beginPath();
+    for (let i = 0; i < smear.length; i += 4) {
+      ctx.moveTo(smear[i], smear[i + 1]);
+      ctx.lineTo(smear[i + 2], smear[i + 3]);
+    }
+    ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 }
 

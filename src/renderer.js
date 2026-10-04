@@ -17,8 +17,10 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
 
 // ───────────────────────── 畫布尺寸 ─────────────────────────
 let W = 0, H = 0, R = 0, CX = 0, CY = 0, dpr = 1, SC = 1;
+let lastDevicePR = 0; // 上次計算時的螢幕縮放比例
 
 function resize() {
+  lastDevicePR = window.devicePixelRatio || 1;
   W = window.innerWidth;
   H = window.innerHeight;
   // 光點與光暈不需要超高解析度，省 GPU；視窗放大到接近滿版時，再把畫布像素數壓在約 1300px 邊長內
@@ -48,13 +50,19 @@ function stopSource() {
   if (audio.stream) audio.stream.getTracks().forEach((t) => t.stop());
   if (audio.ctx) audio.ctx.close().catch(() => {});
   audio.ctx = audio.analyser = audio.beatAnalyser = audio.delay = audio.stream = null;
+  audio.sampleRate = 48000; // 示範模式的頻譜是照 48 kHz 排的
 }
 
+let sourceGen = 0;    // 每次切換音源就 +1；非同步等待結束時若已不是最新的一次，就丟棄結果
+let endedRetries = 0; // 音訊軌道意外結束（裝置被拔掉或切換）後自動重連的次數
+
 async function startSource(kind) {
+  const gen = ++sourceGen;
   stopSource();
   if (kind === 'demo') { showToast('Demo mode'); return; }
+  let stream = null;
+  let ac = null;
   try {
-    let stream;
     if (kind === 'system') {
       // 畫面軌道不能 stop 或移除，否則 loopback 的音訊會跟著靜音。
       // 所以改成要求最小的畫面、1 fps，並停用軌道，把螢幕擷取的成本壓到幾乎為零。
@@ -63,13 +71,14 @@ async function startSource(kind) {
         audio: true,
       });
       stream.getVideoTracks().forEach((t) => { t.enabled = false; });
-      if (!stream.getAudioTracks().length) throw new Error('沒有取得音訊軌道');
+      if (!stream.getAudioTracks().length) throw new Error('no audio track');
     } else {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
     }
-    const ac = new AudioContext();
+    if (gen !== sourceGen) { stream.getTracks().forEach((t) => t.stop()); return; } // 等待期間又切換了音源
+    ac = new AudioContext();
     const analyser = ac.createAnalyser();
     analyser.fftSize = FFT_SIZE;
     analyser.smoothingTimeConstant = 0.5; // 平滑越高反應越慢；0.78 會讓畫面明顯落後鼓點
@@ -95,8 +104,26 @@ async function startSource(kind) {
     audio.delay = delay;
     audio.stream = stream;
     audio.sampleRate = ac.sampleRate;
+
+    // 裝置被拔掉或切換時，音訊軌道會自己結束：自動重連，連續失敗 3 次才放棄並改用示範模式
+    const startedAt = performance.now();
+    stream.getAudioTracks()[0].addEventListener('ended', () => {
+      if (gen !== sourceGen) return;
+      if (performance.now() - startedAt > 30000) endedRetries = 0;
+      if (endedRetries++ < 3) {
+        showToast('Audio device changed, reconnecting');
+        setTimeout(() => { if (gen === sourceGen) startSource(kind); }, 1000);
+      } else {
+        stopSource();
+        showToast('Audio lost, using demo mode');
+      }
+    });
     showToast(kind === 'system' ? 'Connected to system audio' : 'Connected to microphone');
   } catch (err) {
+    // 中途失敗時把已經拿到的資源還回去，避免串流或音訊環境殘留
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (ac) ac.close().catch(() => {});
+    if (gen !== sourceGen) return;
     console.warn('audio source failed:', err && err.message);
     showToast('Audio unavailable, using demo mode');
   }
@@ -218,7 +245,7 @@ function analyze(now, dt) {
   sound.treble = smooth(sound.treble, clamp(rt * gain * 2.8, 0, 1), dt, 32, 8);
   sound.level = smooth(sound.level, clamp(raw * gain * 1.25, 0, 1), dt, 22, 5);
 
-  // 鼓點：低頻明顯高過它自己的慢速平均，且距離上次至少 170ms
+  // 鼓點：低頻明顯高過它自己的慢速平均，且距離上次至少 130ms
   bassEma += (drive - bassEma) * (1 - Math.exp(-dt * 3));
   if (drive > bassEma * 1.18 + 0.04 && now - lastKick > 130) {
     sound.kick = clamp(0.75 + (drive - bassEma) * 2.5, 0.75, 1.4); // 重拍打得越兇，脈動越大
@@ -433,7 +460,7 @@ let rot = 0;
 function drawBackground(t) {
   ctx.globalCompositeOperation = 'source-over';
   const bh = visual === 'blackhole';
-  const d = pal.P.map((v) => v * (bh ? 0.003 : 0.05)); // 以主色壓暗當底色，藍色歌是深藍夜空，紫色歌是暗紫
+  const d = pal.P.map((v) => v * (bh ? 0.003 : 0.05)); // 以主色壓暗當底色：銀河是深藍夜空，黑洞幾乎全黑
   const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R);
   // 中央較實，往外逐漸變透，最外緣完全透明、直接融進桌面（透明度走法同最早版本，底色維持較深）
   g.addColorStop(0, rgba(d.map((v) => v * 1.5), 0.94));
@@ -680,14 +707,13 @@ function drawMeteors(dt) {
   }
 }
 
-function drawRimAndToast(dt) {
+function drawToast(dt) {
   ctx.globalCompositeOperation = 'source-over';
-
   if (toast.t > 0) {
     toast.t -= dt;
     ctx.globalAlpha = clamp(toast.t, 0, 1) * 0.85;
     ctx.fillStyle = '#dfe6ff';
-    ctx.font = `${Math.round(R * 0.06)}px "Segoe UI","Microsoft JhengHei",sans-serif`;
+    ctx.font = `${Math.round(R * 0.06)}px "Segoe UI",sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(toast.text, CX, CY + R * 0.82);
     ctx.globalAlpha = 1;
@@ -699,6 +725,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000) || 0.016;
   last = now;
   const t = now / 1000;
+  if ((window.devicePixelRatio || 1) !== lastDevicePR) resize(); // 視窗被拖到不同縮放比例的螢幕
 
   analyze(now, dt);
   updatePalette();
@@ -731,7 +758,7 @@ function frame(now) {
     ctx.fillRect(0, 0, W, H);
   }
   ctx.restore();
-  drawRimAndToast(dt);
+  drawToast(dt);
 
   requestAnimationFrame(frame);
 }

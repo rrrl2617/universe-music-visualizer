@@ -21,6 +21,8 @@ function clampToWorkArea(x, y, size, display) {
   };
 }
 const VISUALS = ['galaxy', 'blackhole'];
+const SOURCES = ['system', 'mic', 'demo'];
+const DELAYS = [0, 50, 100, 150, 200, 300, 400]; // Sync Delay 的選項（毫秒）
 const DEFAULTS = { source: 'system', visual: 'galaxy', syncDelay: 0, size: 'medium', alwaysOnTop: true, x: null, y: null };
 // 除錯用的環境變數（GALAXY_*）只在開發模式有效；打包後的程式一律忽略它們。
 const env = (key) => (app.isPackaged ? undefined : process.env[key]);
@@ -41,6 +43,9 @@ function loadSettings() {
   if (env('GALAXY_SIZE')) settings.size = env('GALAXY_SIZE');
   if (!SIZE_KEYS.includes(settings.size)) settings.size = DEFAULTS.size;
   if (!VISUALS.includes(settings.visual)) settings.visual = DEFAULTS.visual;
+  if (!SOURCES.includes(settings.source)) settings.source = DEFAULTS.source;
+  if (!DELAYS.includes(settings.syncDelay)) settings.syncDelay = DEFAULTS.syncDelay;
+  settings.alwaysOnTop = settings.alwaysOnTop !== false;
 }
 
 function saveSettings() {
@@ -70,7 +75,8 @@ function createWindow() {
   const guess = sizeFor(settings.size);
   const display = screen.getDisplayNearestPoint(initialPosition(guess));
   const size = sizeFor(settings.size, display);
-  const pos = clampToWorkArea(...Object.values(initialPosition(size)), size, display);
+  const start = initialPosition(size);
+  const pos = clampToWorkArea(start.x, start.y, size, display);
 
   win = new BrowserWindow({
     ...pos,
@@ -95,7 +101,7 @@ function createWindow() {
     },
   });
 
-  if (env('GALAXY_SHOT')) win.setIgnoreMouseEvents(true); // 同上：測試視窗完全穿透
+  if (env('GALAXY_SHOT')) win.setIgnoreMouseEvents(true); // 截圖測試模式：視窗完全穿透滑鼠，避免被誤觸
   // 這個程式只會載入自己的本機頁面：不允許開新視窗，也不允許導航到任何其他網址
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
@@ -220,7 +226,7 @@ ipcMain.on('show-menu', () => {
       submenu: [
         { label: 'Raise this if visuals lead the sound (e.g. Bluetooth)', enabled: false },
         { type: 'separator' },
-        ...[0, 50, 100, 150, 200, 300, 400].map((ms) => ({
+        ...DELAYS.map((ms) => ({
           label: ms === 0 ? 'Off (0 ms)' : `${ms} ms`,
           type: 'radio',
           checked: settings.syncDelay === ms,
